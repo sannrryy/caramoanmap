@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Caramoan – Distance from SPX Hub</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css">
+<style>
+  :root{--bg:#fff;--fg:#1c1c1c;--muted:#666;--line:#e3e3e3;--card:#f7f7f7}
+  @media (prefers-color-scheme:dark){:root{--bg:#161616;--fg:#eee;--muted:#aaa;--line:#333;--card:#222}}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+  header{padding:14px 16px;border-bottom:1px solid var(--line)}
+  h1{margin:0;font-size:1.15rem}
+  header p{margin:4px 0 0;color:var(--muted);font-size:.85rem}
+  #map{height:62vh;min-height:360px;width:100%}
+  .wrap{max-width:900px;margin:0 auto;padding:16px}
+  .legend{display:flex;flex-wrap:wrap;gap:12px;font-size:.8rem;color:var(--muted);margin-bottom:10px}
+  .legend span::before{content:"";display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;background:var(--c)}
+  input{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--fg);font-size:.95rem;margin-bottom:10px}
+  table{width:100%;border-collapse:collapse;font-size:.92rem}
+  th,td{padding:8px 6px;text-align:left;border-bottom:1px solid var(--line)}
+  th{cursor:pointer;color:var(--muted);font-weight:600;user-select:none}
+  td.km{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+  th:last-child{text-align:right}
+  tr.row{cursor:pointer}
+  tr.row:hover{background:var(--card)}
+  .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+  .note{font-size:.78rem;color:var(--muted);margin-top:12px;line-height:1.5}
+  .lbl{background:rgba(255,255,255,.85);border:0;box-shadow:none;font-size:11px;padding:1px 4px;color:#222}
+</style>
+</head>
+<body>
+<header>
+  <h1>Caramoan, Camarines Sur – Distance from SPX Hub</h1>
+  <p>22 barangays · straight-line (as the crow flies) distance from SPX Express – Caramoan Hub</p>
+</header>
+<div id="map"></div>
+<div class="wrap">
+  <div class="legend">
+    <span style="--c:#1D9E75">0–5 km</span>
+    <span style="--c:#BA7517">5–10 km</span>
+    <span style="--c:#D85A30">10–14 km</span>
+    <span style="--c:#A32D2D">14 km and above</span>
+  </div>
+  <input id="q" type="search" placeholder="Search barangay...">
+  <table>
+    <thead><tr><th data-k="n">Barangay</th><th data-k="d">Distance (km)</th></tr></thead>
+    <tbody id="tb"></tbody>
+  </table>
+  <p class="note">Distances are straight-line, not road distance, so the actual trip will be longer. Some pins are barangay halls and others are barangay centers from Google Maps, so values may differ slightly. An internet connection is required for the map to load.</p>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script>
+const HUB={lat:13.7741485,lng:123.8634766};
+const B=[
+["Agaas",13.8102268,123.8029979],["Antolon",13.7938981,123.7599461],["Bahay",13.8091035,123.8094799],
+["Gibgos",13.8580461,123.7674226],["Hanopol",13.7444543,123.8480864],["Hanoy",13.794385,123.8383377],
+["Lidong",13.8608134,123.7419937],["Malabog",13.7817609,123.8109616],["Maligaya",13.8258559,123.7434401],
+["Mampirao",13.8492915,123.7433907],["Mandiclum (Mandiclom)",13.8251875,123.7266719],["Minalaba",13.8120402,123.8215894],
+["Paniman",13.8142651,123.8718252],["Patag-Belen",13.7780766,123.7848045],["Poloan",13.7959494,123.7797054],
+["Salvacion",13.7499308,123.8662448],["San Roque",13.7601334,123.8327552],["Santa Cruz",13.8208352,123.7701953],
+["Tabgon",13.8300063,123.8127369],["Tabiguian",13.8333653,123.798436],["Tabog",13.796118,123.8271725],
+["Toboan",13.8378526,123.7685332]
+];
+function hav(a,b,c,d){const R=6371,r=Math.PI/180,p=(c-a)*r,l=(d-b)*r;
+  const x=Math.sin(p/2)**2+Math.cos(a*r)*Math.cos(c*r)*Math.sin(l/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+const data=B.map(([n,la,lo])=>({n,la,lo,d:hav(HUB.lat,HUB.lng,la,lo)}));
+const col=d=>d<5?"#1D9E75":d<10?"#BA7517":d<14?"#D85A30":"#A32D2D";
+
+const map=L.map("map");
+L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:18,attribution:"&copy; OpenStreetMap"}).addTo(map);
+
+const hub=L.marker([HUB.lat,HUB.lng],{
+  icon:L.divIcon({html:'<div style="background:#E8262B;color:#fff;font:700 11px system-ui;padding:3px 7px;border-radius:6px;white-space:nowrap;border:2px solid #fff;box-shadow:0 1px 4px #0005">SPX HUB</div>',className:"",iconAnchor:[28,12]}),
+  zIndexOffset:1000
+}).addTo(map).bindPopup("<b>SPX Express – Caramoan Hub</b><br>139 Presentacion–Caramoan Road");
+
+const markers={};
+const pts=[[HUB.lat,HUB.lng]];
+data.forEach(o=>{
+  const c=col(o.d);
+  L.polyline([[HUB.lat,HUB.lng],[o.la,o.lo]],{color:c,weight:1.5,opacity:.45,dashArray:"4 4"}).addTo(map);
+  const m=L.circleMarker([o.la,o.lo],{radius:8,color:"#fff",weight:2,fillColor:c,fillOpacity:1}).addTo(map);
+  m.bindTooltip(o.n.split(" (")[0]+" · "+o.d.toFixed(1)+" km",{permanent:true,direction:"right",offset:[8,0],className:"lbl"});
+  m.bindPopup("<b>"+o.n+"</b><br>"+o.d.toFixed(1)+" km from SPX Hub");
+  markers[o.n]=m; pts.push([o.la,o.lo]);
+});
+map.fitBounds(pts,{padding:[30,30]});
+
+let key="d",asc=true;
+function render(){
+  const f=document.getElementById("q").value.toLowerCase();
+  const rows=data.filter(o=>o.n.toLowerCase().includes(f)).sort((a,b)=>{
+    const r=key==="n"?a.n.localeCompare(b.n):a.d-b.d;return asc?r:-r;});
+  document.getElementById("tb").innerHTML=rows.map(o=>
+    `<tr class="row" data-n="${o.n}"><td><span class="dot" style="background:${col(o.d)}"></span>${o.n}</td><td class="km">${o.d.toFixed(1)} km</td></tr>`).join("");
+}
+document.querySelectorAll("th").forEach(th=>th.onclick=()=>{
+  const k=th.dataset.k; if(key===k)asc=!asc; else{key=k;asc=true} render();});
+document.getElementById("q").oninput=render;
+document.getElementById("tb").onclick=e=>{
+  const tr=e.target.closest("tr"); if(!tr)return;
+  const m=markers[tr.dataset.n]; map.flyTo(m.getLatLng(),15); m.openPopup();
+  window.scrollTo({top:0,behavior:"smooth"});
+};
+render();
+</script>
+</body>
+</html>
